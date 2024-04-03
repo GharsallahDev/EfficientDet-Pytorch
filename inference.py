@@ -137,6 +137,10 @@ def load_config(project_file):
             return None
     return config
 
+import os
+import cv2
+import matplotlib.pyplot as plt
+
 def display(preds, imgs, obj_list, compound_coef, imshow=False, imwrite=False):
     color_list = standard_to_bgr(STANDARD_COLORS)
     save_dir = 'test'
@@ -154,10 +158,15 @@ def display(preds, imgs, obj_list, compound_coef, imshow=False, imwrite=False):
             x1, y1, x2, y2 = preds[i]['rois'][j].astype(int)
             obj = obj_list[preds[i]['class_ids'][j]]
             score = preds[i]['scores'][j]
+
             if score is None:
                 score = 0.0
             score = float(score)
-            plot_one_box(img_copy, [x1, y1, x2, y2], label=f"{obj} {score:.2f}", color=color_list[get_index_label(obj, obj_list)])
+
+            label = f"{obj} {score:.2f}"
+            color = color_list[get_index_label(obj, obj_list)]
+
+            plot_one_box(img_copy, [x1, y1, x2, y2], label=label, color=color)
 
         save_path = os.path.join(save_dir, f'img_inferred_d{compound_coef}_this_repo_{i}.jpg')
 
@@ -169,6 +178,7 @@ def display(preds, imgs, obj_list, compound_coef, imshow=False, imwrite=False):
             plt.imshow(cv2.cvtColor(img_copy, cv2.COLOR_BGR2RGB))
             plt.axis('off')
             plt.show()
+
 
 if __name__ == '__main__':
     opt = get_args()
