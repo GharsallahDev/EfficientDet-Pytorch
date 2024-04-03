@@ -139,9 +139,8 @@ def load_config(project_file):
 
 def display(preds, imgs, obj_list, compound_coef, imshow=False, imwrite=False):
     color_list = standard_to_bgr(STANDARD_COLORS)
-    save_dir = 'test'  # Define a directory to save the images
+    save_dir = 'test'
 
-    # Ensure the save directory exists
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
@@ -154,22 +153,21 @@ def display(preds, imgs, obj_list, compound_coef, imshow=False, imwrite=False):
         for j in range(len(preds[i]['rois'])):
             x1, y1, x2, y2 = preds[i]['rois'][j].astype(int)
             obj = obj_list[preds[i]['class_ids'][j]]
-            score = float(preds[i]['scores'][j])
+            score = preds[i]['scores'][j]
+            if score is None:
+                score = 0.0
+            score = float(score)
             plot_one_box(img_copy, [x1, y1, x2, y2], label=f"{obj} {score:.2f}", color=color_list[get_index_label(obj, obj_list)])
 
-        # Define the path for saving the image
         save_path = os.path.join(save_dir, f'img_inferred_d{compound_coef}_this_repo_{i}.jpg')
 
-        # Optionally write the image
         if imwrite:
             cv2.imwrite(save_path, img_copy)
 
-        # Optionally display the image
         if imshow:
-            # Use matplotlib to display the image
             plt.figure(figsize=(10, 10))
             plt.imshow(cv2.cvtColor(img_copy, cv2.COLOR_BGR2RGB))
-            plt.axis('off')  # Hide axes for a cleaner view
+            plt.axis('off')
             plt.show()
 
 if __name__ == '__main__':
