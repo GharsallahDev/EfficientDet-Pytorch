@@ -159,14 +159,13 @@ def display(preds, imgs, obj_list, compound_coef, imshow=False, imwrite=False):
             obj = obj_list[preds[i]['class_ids'][j]]
             score = preds[i]['scores'][j]
 
-            if score is None:
-                score = 0.0
-            score = float(score)
+            score = 0.0 if score is None else float(score)
 
-            label = f"{obj} {score:.2f}"
+            label = f"{obj}"
+
             color = color_list[get_index_label(obj, obj_list)]
 
-            plot_one_box(img_copy, [x1, y1, x2, y2], label=label, color=color)
+            plot_one_box(img_copy, [x1, y1, x2, y2], label=label, score=score, color=color)
 
         save_path = os.path.join(save_dir, f'img_inferred_d{compound_coef}_this_repo_{i}.jpg')
 
