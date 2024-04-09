@@ -9,7 +9,7 @@ from backbone import EfficientDetBackbone
 import cv2
 from efficientdet.utils import BBoxTransform, ClipBoxes
 from utils.utils import preprocess, invert_affine, postprocess, STANDARD_COLORS, standard_to_bgr, get_index_label, plot_one_box
-from IPython.display import Image, display as ipython_display
+from IPython.display import Image as IPImage, display as ipython_display
 
 def get_args():
     parser = argparse.ArgumentParser('EfficientDet Pytorch: SOTA object detection network')
@@ -77,14 +77,15 @@ def infer(opt, config):
     ori_imgs, framed_imgs, framed_metas = preprocess(image_path, max_size=input_size)
 
     if use_cuda:
-        image = torch.stack([torch.from_numpy(fi).cuda() for fi in framed_imgs], 0)
+        image = torch.stack([torch.from_numpy(framed_imgs[0]).cuda()], 0)
     else:
-        image = torch.stack([torch.from_numpy(fi) for fi in framed_imgs], 0)
+        image = torch.stack([torch.from_numpy(framed_imgs[0])], 0)
 
     image = image.to(torch.float32 if not use_float16 else torch.float16).permute(0, 3, 1, 2)
-
-    model = EfficientDetBackbone(compound_coef=compound_coef, num_classes=len(obj_list),
-                                ratios=anchor_ratios, scales=anchor_scales)
+    model = EfficientDetBackbone(compound_coef=compound_coef, 
+                                 num_classes=len(obj_list),
+                                 ratios=anchor_ratios, 
+                                 scales=anchor_scales)
     model.load_state_dict(torch.load(opt.weight, map_location='cpu'))
     model.requires_grad_(False)
     model.eval() 
@@ -110,63 +111,46 @@ def infer(opt, config):
 
     with torch.no_grad():
         print('Model Inferring & Postprocessing')
-        print('Inferring Image x 10')
         t1 = time.time()
-        for _ in range(10):
-            _, regression, classification, anchors = model(image)
-
-            out = postprocess(image,
-                            anchors, regression, classification,
-                            regressBoxes, clipBoxes,
-                            threshold, iou_threshold)
-            out = invert_affine(framed_metas, out)
-            display(out, ori_imgs, obj_list, compound_coef, image_path=image_path, imshow=opt.imshow, imwrite=opt.imwrite)
-
+        _, regression, classification, anchors = model(image)
+        out = postprocess(image, anchors, regression, classification, regressBoxes, clipBoxes, threshold, iou_threshold)
+        out = invert_affine(framed_metas[:1], out)
+        if len(out) > 0:
+            display(out[0], ori_imgs[0], obj_list, compound_coef, image_path=image_path, imshow=opt.imshow, imwrite=opt.imwrite)
         t2 = time.time()
-        tact_time = (t2 - t1) / 10
+        tact_time = t2 - t1
         print(f'{tact_time} seconds, {1 / tact_time} FPS, @batch_size 1')
 
-from IPython.display import display as ipython_display
-from PIL import Image
-import io
 
-def display_image_from_memory(img):
-    is_success, buffer = cv2.imencode(".jpg", img)
-    if is_success:
-        io_buf = io.BytesIO(buffer)
-        ipython_display(Image.open(io_buf))
-    else:
-        print("Could not encode image to display.")
-
-def display(preds, imgs, obj_list, compound_coef, image_path, imshow=False, imwrite=False):
+def display(pred, img, obj_list, compound_coef, image_path, imshow=False, imwrite=False):
     color_list = standard_to_bgr(STANDARD_COLORS)
     save_dir = 'test'
     image_name = os.path.basename(image_path)
     inferred_image_name = f"inferred_{image_name}"
-    save_path = os.path.join(save_dir, inferred_image_name)
+    save_path = os.path.join('/kaggle/working/EfficientDet', save_dir, inferred_image_name)
 
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    for i, img in enumerate(imgs):
-        if len(preds[i]['rois']) == 0:
-            continue  # Skip images without detections
+    if len(pred['rois']) == 0:
+        return 
 
-        img_copy = img.copy()
+    img_copy = img.copy()
 
-        for j in range(len(preds[i]['rois'])):
-            x1, y1, x2, y2 = preds[i]['rois'][j].astype(int)
-            obj = obj_list[preds[i]['class_ids'][j]]
-            score = preds[i]['scores'][j] if preds[i]['scores'][j] is not None else 0.0
-            label = f"{obj} {score:.2f}"  # Display score with label
-            color = color_list[get_index_label(obj, obj_list)]
-            plot_one_box(img_copy, [x1, y1, x2, y2], label=label, color=color)
+    for j in range(len(pred['rois'])):
+        x1, y1, x2, y2 = pred['rois'][j].astype(int)
+        obj = obj_list[pred['class_ids'][j]]
+        score = pred['scores'][j] if pred['scores'][j] is not None else 0.0
+        label = f"{obj} {score:.2f}"
+        color = color_list[get_index_label(obj, obj_list)]
+        plot_one_box(img_copy, [x1, y1, x2, y2], label=label, color=color)
 
-        if imwrite:
-            cv2.imwrite(save_path, img_copy)
+    if imwrite:
+        cv2.imwrite(save_path, img_copy)
+        print(f"Image saved to {save_path}")
 
-        if imshow:
-            display_image_from_memory(img_copy)
+    if imshow:
+        ipython_display(IPImage(filename=save_path))
 
 def load_config(project_file):
     with open(project_file, 'r') as file:
