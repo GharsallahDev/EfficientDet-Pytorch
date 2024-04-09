@@ -55,7 +55,7 @@ def validate_args(opt):
     print("All checks passed. Ready for inference.")
     return True
 
-def doit(opt, config):
+def infer(opt, config):
 
     image_path = opt.image_path
     use_cuda = opt.cuda and torch.cuda.is_available()
@@ -137,10 +137,6 @@ def load_config(project_file):
             return None
     return config
 
-import os
-import cv2
-import matplotlib.pyplot as plt
-
 def display(preds, imgs, obj_list, compound_coef, imshow=False, imwrite=False):
     color_list = standard_to_bgr(STANDARD_COLORS)
     save_dir = 'test'
@@ -177,6 +173,7 @@ def display(preds, imgs, obj_list, compound_coef, imshow=False, imwrite=False):
             plt.imshow(cv2.cvtColor(img_copy, cv2.COLOR_BGR2RGB))
             plt.axis('off')
             plt.show()
+            plt.close()
 
 
 if __name__ == '__main__':
@@ -184,4 +181,4 @@ if __name__ == '__main__':
     if validate_args(opt):
         config = load_config(os.path.join('./projects', opt.project + '.yml'))
         if config is not None:
-            doit(opt, config)
+            infer(opt, config)
