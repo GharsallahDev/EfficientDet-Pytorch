@@ -149,8 +149,10 @@ def display(preds, imgs, obj_list, compound_coef, image_path, imshow=False, imwr
             score = 0.0 if score is None else float(score)
             label = f"{obj} {score:.2f}"  # Display score with label
 
+            print("MOTHERFUCKING SCORE : ", score)
+            print("MOTHERFUCKING LABEL :", label)
             color = color_list[get_index_label(obj, obj_list)]
-            plot_one_box(img_copy, [x1, y1, x2, y2], label=label, color=color)
+            #plot_one_box(img_copy, [x1, y1, x2, y2], label=label, color=color)
 
         if imwrite:
             cv2.imwrite(save_path, img_copy)
