@@ -56,7 +56,6 @@ def validate_args(opt):
     return True
 
 def infer(opt, config):
-
     image_path = opt.image_path
     use_cuda = opt.cuda and torch.cuda.is_available()
     use_float16 = opt.float16 and torch.cuda.is_available() and 'cuda' in use_cuda and torch.cuda.get_device_capability()[0] >= 7
@@ -68,67 +67,48 @@ def infer(opt, config):
     iou_threshold = config.get('iou_threshold', 0.2)
     obj_list = config['obj_list']
 
-    cudnn.fastest = True
-    cudnn.benchmark = True
-
     input_sizes = [512, 640, 768, 896, 1024, 1280, 1280, 1536, 1536]
     input_size = input_sizes[compound_coef] if opt.force_input_size is None else opt.force_input_size
 
     ori_imgs, framed_imgs, framed_metas = preprocess(image_path, max_size=input_size)
 
     if use_cuda:
-        image = torch.stack([torch.from_numpy(framed_imgs[0]).cuda()], 0)
+        x = torch.stack([torch.from_numpy(framed_imgs[0]).cuda()], 0)
     else:
-        image = torch.stack([torch.from_numpy(framed_imgs[0])], 0)
+        x = torch.stack([torch.from_numpy(framed_imgs[0])], 0)
 
-    image = image.to(torch.float32 if not use_float16 else torch.float16).permute(0, 3, 1, 2)
-    model = EfficientDetBackbone(compound_coef=compound_coef, 
-                                 num_classes=len(obj_list),
-                                 ratios=anchor_ratios, 
-                                 scales=anchor_scales)
+    x = x.to(torch.float32 if not use_float16 else torch.float16).permute(0, 3, 1, 2)
+
+    model = EfficientDetBackbone(compound_coef=compound_coef, num_classes=len(obj_list),
+                                 ratios=anchor_ratios, scales=anchor_scales)
     model.load_state_dict(torch.load(opt.weight, map_location='cpu'))
     model.requires_grad_(False)
-    model.eval() 
+    model.eval()
 
     if use_cuda:
         model = model.cuda()
-
     if use_float16:
         model = model.half()
 
     with torch.no_grad():
-        _, regression, classification, anchors = model(image)
+        _, regression, classification, anchors = model(x)
 
         regressBoxes = BBoxTransform()
         clipBoxes = ClipBoxes()
 
-        out = postprocess(image,
-                        anchors, regression, classification,
-                        regressBoxes, clipBoxes,
-                        threshold, iou_threshold)
-        
+        out = postprocess(x,
+                          anchors, regression, classification,
+                          regressBoxes, clipBoxes,
+                          threshold, iou_threshold)
+
         out = invert_affine(framed_metas, out)
 
-    with torch.no_grad():
-        print('Model Inferring & Postprocessing')
-        t1 = time.time()
-        _, regression, classification, anchors = model(image)
-        out = postprocess(image, anchors, regression, classification, regressBoxes, clipBoxes, threshold, iou_threshold)
-        out = invert_affine(framed_metas[:1], out)
         if len(out) > 0:
-            display(out[0], ori_imgs[0], obj_list, compound_coef, image_path=image_path, imshow=opt.imshow, imwrite=opt.imwrite)
-        t2 = time.time()
-        tact_time = t2 - t1
-        print(f'{tact_time} seconds, {1 / tact_time} FPS, @batch_size 1')
+            display(out[0], ori_imgs[0], obj_list, image_path=image_path, imshow=opt.imshow, imwrite=opt.imwrite)
 
+from IPython.display import display as ipython_display, Image as IPImage
 
-from IPython.display import display as ipython_display
-from PIL import Image
-import io
-import cv2
-import os
-
-def display(pred, img, obj_list, compound_coef, image_path, imshow=False, imwrite=False):
+def display(pred, img, obj_list, image_path, imshow=False, imwrite=False):
     color_list = standard_to_bgr(STANDARD_COLORS)
     save_dir = 'test'
     image_name = os.path.basename(image_path)
@@ -139,7 +119,6 @@ def display(pred, img, obj_list, compound_coef, image_path, imshow=False, imwrit
         os.makedirs(save_dir)
 
     if len(pred['rois']) == 0:
-        print("No detections.")
         return
 
     img_copy = img.copy()
@@ -157,12 +136,8 @@ def display(pred, img, obj_list, compound_coef, image_path, imshow=False, imwrit
         print(f"Image saved to {save_path}")
 
     if imshow:
-        # Display using PIL and BytesIO
-        image_to_display = Image.open(save_path)
-        with io.BytesIO() as buf:
-            image_to_display.save(buf, 'jpeg')
-            buf.seek(0)
-            ipython_display(Image.open(buf))
+        ipython_display(IPImage(filename=save_path))
+
 
 def load_config(project_file):
     with open(project_file, 'r') as file:
