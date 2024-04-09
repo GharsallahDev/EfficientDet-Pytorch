@@ -207,8 +207,8 @@ def train(opt):
             last_epoch = step // num_iter_per_epoch
             print("LAST EPOCH :", last_epoch)
             if epoch < last_epoch:
-                continue
                 print("PASS 3")
+                continue
             else :
                 print("FAIL 1")
 
