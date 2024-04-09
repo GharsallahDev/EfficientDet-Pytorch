@@ -126,19 +126,31 @@ def infer(opt, config):
         tact_time = (t2 - t1) / 10
         print(f'{tact_time} seconds, {1 / tact_time} FPS, @batch_size 1')
 
+from IPython.display import display as ipython_display
+from PIL import Image
+import io
+
+def display_image_from_memory(img):
+    is_success, buffer = cv2.imencode(".jpg", img)
+    if is_success:
+        io_buf = io.BytesIO(buffer)
+        ipython_display(Image.open(io_buf))
+    else:
+        print("Could not encode image to display.")
+
 def display(preds, imgs, obj_list, compound_coef, image_path, imshow=False, imwrite=False):
     color_list = standard_to_bgr(STANDARD_COLORS)
     save_dir = 'test'
     image_name = os.path.basename(image_path)
     inferred_image_name = f"inferred_{image_name}"
-    save_path = os.path.join('/kaggle/working/EfficientDet',save_dir, inferred_image_name)
+    save_path = os.path.join(save_dir, inferred_image_name)
 
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
     for i, img in enumerate(imgs):
         if len(preds[i]['rois']) == 0:
-            continue 
+            continue  # Skip images without detections
 
         img_copy = img.copy()
 
@@ -146,16 +158,15 @@ def display(preds, imgs, obj_list, compound_coef, image_path, imshow=False, imwr
             x1, y1, x2, y2 = preds[i]['rois'][j].astype(int)
             obj = obj_list[preds[i]['class_ids'][j]]
             score = preds[i]['scores'][j] if preds[i]['scores'][j] is not None else 0.0
-            label = f"{obj} {score:.2f}"
+            label = f"{obj} {score:.2f}"  # Display score with label
             color = color_list[get_index_label(obj, obj_list)]
             plot_one_box(img_copy, [x1, y1, x2, y2], label=label, color=color)
 
         if imwrite:
             cv2.imwrite(save_path, img_copy)
-            print(f"Image saved to {save_path}")
 
         if imshow:
-            ipython_display(Image(filename=save_path))
+            display_image_from_memory(img_copy)
 
 def load_config(project_file):
     with open(project_file, 'r') as file:
