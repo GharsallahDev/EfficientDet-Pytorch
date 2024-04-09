@@ -126,6 +126,7 @@ def train(opt):
 
     # load last weights
     if opt.load_weights is not None:
+        print("PASS 1")
         if opt.load_weights.endswith('.pth'):
             weights_path = opt.load_weights
         else:
@@ -199,12 +200,15 @@ def train(opt):
     model.train()
 
     num_iter_per_epoch = len(training_generator)
-
+    print("PASS 2")
     try:
         for epoch in range(opt.num_epochs):
             last_epoch = step // num_iter_per_epoch
             if epoch < last_epoch:
                 continue
+                print("PASS 3")
+            else :
+                print("FAIL 1")
 
             epoch_loss = []
             progress_bar = tqdm(training_generator)
