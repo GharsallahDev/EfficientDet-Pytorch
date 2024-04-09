@@ -129,36 +129,32 @@ def infer(opt, config):
 def display(preds, imgs, obj_list, compound_coef, image_path, imshow=False, imwrite=False):
     color_list = standard_to_bgr(STANDARD_COLORS)
     save_dir = 'test'
-    image_name = os.path.basename(image_path)  # Extract img.png from /something/img.png
-    inferred_image_name = f"inferred_{image_name}"  # Create inferred_img.png
+    image_name = os.path.basename(image_path)
+    inferred_image_name = f"inferred_{image_name}"
     save_path = os.path.join(save_dir, inferred_image_name)
 
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    for i in range(len(imgs)):
+    for i, img in enumerate(imgs):
         if len(preds[i]['rois']) == 0:
             continue  # Skip images without detections
 
-        img_copy = imgs[i].copy()
+        img_copy = img.copy()
 
         for j in range(len(preds[i]['rois'])):
             x1, y1, x2, y2 = preds[i]['rois'][j].astype(int)
             obj = obj_list[preds[i]['class_ids'][j]]
-            score = preds[i]['scores'][j]
-            score = 0.0 if score is None else float(score)
-            label = f"{obj} {score:.2f}"  # Display score with label
-
-            print("MOTHERFUCKING SCORE : ", score)
-            print("MOTHERFUCKING LABEL :", label)
+            score = preds[i]['scores'][j] if preds[i]['scores'][j] is not None else 0.0
+            label = f"{obj}"
             color = color_list[get_index_label(obj, obj_list)]
-            #plot_one_box(img_copy, [x1, y1, x2, y2], label=label, color=color)
+
+            plot_one_box(img_copy, [x1, y1, x2, y2], label=label, score=score, color=color)
 
         if imwrite:
             cv2.imwrite(save_path, img_copy)
 
         if imshow:
-            print("INFERRED IMAGE")
             plt.figure(figsize=(10, 10))
             plt.imshow(cv2.cvtColor(img_copy, cv2.COLOR_BGR2RGB))
             plt.axis('off')
