@@ -204,10 +204,13 @@ def train(opt):
     print("Iterations : ", len(training_generator))
     try:
         for epoch in range(opt.num_epochs):
+            print(f"Starting training with {opt.num_epochs} epochs.")
+            print(f"num_iter_per_epoch: {num_iter_per_epoch}, last_step: {step}, computed last_epoch: {last_epoch}")
             last_epoch = step // num_iter_per_epoch
             print("LAST EPOCH :", last_epoch)
             if epoch < last_epoch:
-                print("PASS 3")
+                print(f"Skipping epoch {epoch} as it is less than last_epoch {last_epoch}.")
+                print(f"Comparing: {epoch} < {last_epoch}")
                 continue
             else :
                 print("FAIL 1")
