@@ -122,6 +122,12 @@ def infer(opt, config):
         print(f'{tact_time} seconds, {1 / tact_time} FPS, @batch_size 1')
 
 
+from IPython.display import display as ipython_display
+from PIL import Image
+import io
+import cv2
+import os
+
 def display(pred, img, obj_list, compound_coef, image_path, imshow=False, imwrite=False):
     color_list = standard_to_bgr(STANDARD_COLORS)
     save_dir = 'test'
@@ -133,7 +139,8 @@ def display(pred, img, obj_list, compound_coef, image_path, imshow=False, imwrit
         os.makedirs(save_dir)
 
     if len(pred['rois']) == 0:
-        return 
+        print("No detections.")
+        return
 
     img_copy = img.copy()
 
@@ -150,7 +157,12 @@ def display(pred, img, obj_list, compound_coef, image_path, imshow=False, imwrit
         print(f"Image saved to {save_path}")
 
     if imshow:
-        ipython_display(IPImage(filename=save_path))
+        # Display using PIL and BytesIO
+        image_to_display = Image.open(save_path)
+        with io.BytesIO() as buf:
+            image_to_display.save(buf, 'jpeg')
+            buf.seek(0)
+            ipython_display(Image.open(buf))
 
 def load_config(project_file):
     with open(project_file, 'r') as file:
