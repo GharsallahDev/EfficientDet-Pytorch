@@ -201,9 +201,11 @@ def train(opt):
 
     num_iter_per_epoch = len(training_generator)
     print("PASS 2")
+    print("Iterations : ", len(training_generator))
     try:
         for epoch in range(opt.num_epochs):
             last_epoch = step // num_iter_per_epoch
+            print("LAST EPOCH :", last_epoch)
             if epoch < last_epoch:
                 continue
                 print("PASS 3")
