@@ -120,7 +120,7 @@ def infer(opt, config):
                             regressBoxes, clipBoxes,
                             threshold, iou_threshold)
             out = invert_affine(framed_metas, out)
-            display(out, ori_imgs, obj_list, compound_coef, imshow=opt.imshow, imwrite=opt.imwrite)
+            display(out, ori_imgs, obj_list, compound_coef, image_path=image_path, imshow=opt.imshow, imwrite=opt.imwrite)
 
         t2 = time.time()
         tact_time = (t2 - t1) / 10
@@ -137,15 +137,25 @@ def load_config(project_file):
             return None
     return config
 
-def display(preds, imgs, obj_list, compound_coef, imshow=False, imwrite=False):
+def display(preds, imgs, obj_list, compound_coef, image_path, imshow=False, imwrite=False):
     color_list = standard_to_bgr(STANDARD_COLORS)
     save_dir = 'test'
+    image_name = os.path.basename(image_path)  # Extract img.png from /something/img.png
+    inferred_image_name = f"inferred_{image_name}"  # Create inferred_img.png
+    save_path = os.path.join(save_dir, inferred_image_name)
+
+    print(f"Save directory: {save_dir}")
+    print(f"Image name: {image_name}")
+    print(f"Inferred image name: {inferred_image_name}")
+    print(f"Save path: {save_path}")
 
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
+        print(f"Created directory: {save_dir}")
 
     for i in range(len(imgs)):
         if len(preds[i]['rois']) == 0:
+            print(f"No detections for image {i}. Skipping.")
             continue
 
         img_copy = imgs[i].copy()
@@ -163,17 +173,19 @@ def display(preds, imgs, obj_list, compound_coef, imshow=False, imwrite=False):
 
             plot_one_box(img_copy, [x1, y1, x2, y2], label=label, score=score, color=color)
 
-        save_path = os.path.join(save_dir, f'img_inferred_d{compound_coef}_this_repo_{i}.jpg')
-
         if imwrite:
             cv2.imwrite(save_path, img_copy)
+            print(f"Image saved to {save_path}")
 
         if imshow:
             plt.figure(figsize=(10, 10))
             plt.imshow(cv2.cvtColor(img_copy, cv2.COLOR_BGR2RGB))
             plt.axis('off')
             plt.show()
-            plt.close()
+            plt.close()  # Close the figure
+            print(f"Displayed image {i}.")
+
+
 
 
 if __name__ == '__main__':
