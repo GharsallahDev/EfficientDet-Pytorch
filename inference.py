@@ -9,7 +9,7 @@ from backbone import EfficientDetBackbone
 import cv2
 from efficientdet.utils import BBoxTransform, ClipBoxes
 from utils.utils import preprocess, invert_affine, postprocess, STANDARD_COLORS, standard_to_bgr, get_index_label, plot_one_box
-from matplotlib import colors
+from IPython.display import Image, display as ipython_display
 
 def get_args():
     parser = argparse.ArgumentParser('EfficientDet Pytorch: SOTA object detection network')
@@ -146,20 +146,16 @@ def display(preds, imgs, obj_list, compound_coef, image_path, imshow=False, imwr
             x1, y1, x2, y2 = preds[i]['rois'][j].astype(int)
             obj = obj_list[preds[i]['class_ids'][j]]
             score = preds[i]['scores'][j] if preds[i]['scores'][j] is not None else 0.0
-            label = f"{obj}"
+            label = f"{obj} {score:.2f}"  # Display score with label
             color = color_list[get_index_label(obj, obj_list)]
-
-            plot_one_box(img_copy, [x1, y1, x2, y2], label=label, score=score, color=color)
+            plot_one_box(img_copy, [x1, y1, x2, y2], label=label, color=color)
 
         if imwrite:
             cv2.imwrite(save_path, img_copy)
+            print(f"Image saved to {save_path}")
 
         if imshow:
-            plt.figure(figsize=(10, 10))
-            plt.imshow(cv2.cvtColor(img_copy, cv2.COLOR_BGR2RGB))
-            plt.axis('off')
-            plt.show()
-
+            ipython_display(Image(filename=save_path))
 
 def load_config(project_file):
     with open(project_file, 'r') as file:
