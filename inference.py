@@ -126,6 +126,41 @@ def infer(opt, config):
         tact_time = (t2 - t1) / 10
         print(f'{tact_time} seconds, {1 / tact_time} FPS, @batch_size 1')
 
+def display(preds, imgs, obj_list, compound_coef, image_path, imshow=False, imwrite=False):
+    color_list = standard_to_bgr(STANDARD_COLORS)
+    save_dir = 'test'
+    image_name = os.path.basename(image_path)
+    inferred_image_name = f"inferred_{image_name}"
+    save_path = os.path.join(save_dir, inferred_image_name)
+
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    for i, img in enumerate(imgs):
+        if len(preds[i]['rois']) == 0:
+            continue
+
+        img_copy = img.copy()
+
+        for j in range(len(preds[i]['rois'])):
+            x1, y1, x2, y2 = preds[i]['rois'][j].astype(int)
+            obj = obj_list[preds[i]['class_ids'][j]]
+            score = preds[i]['scores'][j]
+            score = 0.0 if score is None else float(score)
+            label = f"{obj}: {score:.2f}"
+            color = color_list[get_index_label(obj, obj_list)]
+            plot_one_box(img_copy, [x1, y1, x2, y2], label=label, color=color, line_thickness=2)
+
+        if imwrite:
+            cv2.imwrite(save_path, img_copy)
+
+        if imshow:
+            print("INFERRED IMAGE :")
+            _, ax = plt.subplots(figsize=(10, 10))
+            ax.imshow(cv2.cvtColor(img_copy, cv2.COLOR_BGR2RGB))
+            ax.axis('off')
+            plt.show()
+
 def load_config(project_file):
     with open(project_file, 'r') as file:
         config = yaml.safe_load(file)
@@ -136,56 +171,6 @@ def load_config(project_file):
             print(f"Warning: '{var}' is missing or empty in the YAML file")
             return None
     return config
-
-def display(preds, imgs, obj_list, compound_coef, image_path, imshow=False, imwrite=False):
-    color_list = standard_to_bgr(STANDARD_COLORS)
-    save_dir = 'test'
-    image_name = os.path.basename(image_path)  # Extract img.png from /something/img.png
-    inferred_image_name = f"inferred_{image_name}"  # Create inferred_img.png
-    save_path = os.path.join(save_dir, inferred_image_name)
-
-    print(f"Save directory: {save_dir}")
-    print(f"Image name: {image_name}")
-    print(f"Inferred image name: {inferred_image_name}")
-    print(f"Save path: {save_path}")
-
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-        print(f"Created directory: {save_dir}")
-
-    for i in range(len(imgs)):
-        if len(preds[i]['rois']) == 0:
-            print(f"No detections for image {i}. Skipping.")
-            continue
-
-        img_copy = imgs[i].copy()
-
-        for j in range(len(preds[i]['rois'])):
-            x1, y1, x2, y2 = preds[i]['rois'][j].astype(int)
-            obj = obj_list[preds[i]['class_ids'][j]]
-            score = preds[i]['scores'][j]
-
-            score = 0.0 if score is None else float(score)
-
-            label = f"{obj}"
-
-            color = color_list[get_index_label(obj, obj_list)]
-
-            plot_one_box(img_copy, [x1, y1, x2, y2], label=label, score=score, color=color)
-
-        if imwrite:
-            cv2.imwrite(save_path, img_copy)
-            print(f"Image saved to {save_path}")
-
-        if imshow:
-            plt.figure(figsize=(10, 10))
-            plt.imshow(cv2.cvtColor(img_copy, cv2.COLOR_BGR2RGB))
-            plt.axis('off')
-            plt.show()
-            plt.close()  # Close the figure
-            print(f"Displayed image {i}.")
-
-
 
 
 if __name__ == '__main__':
