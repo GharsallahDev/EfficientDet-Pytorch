@@ -52,7 +52,6 @@ def validate_args(opt):
             print("Warning: Image format is invalid")
             return False
 
-    print("All checks passed. Ready for inference.")
     return True
 
 def infer(opt, config):
@@ -130,14 +129,8 @@ def display(pred, img, obj_list, image_path, imshow=False, imwrite=False):
         label = f"{obj} {score:.2f}"
         color = color_list[get_index_label(obj, obj_list)]
         plot_one_box(img_copy, [x1, y1, x2, y2], label=label, color=color)
-
-    if imwrite:
-        cv2.imwrite(save_path, img_copy)
-        print(f"Image saved to {save_path}")
-
-    if imshow:
-        ipython_display(IPImage(filename=save_path))
-
+        
+    cv2.imwrite(save_path, img_copy)
 
 def load_config(project_file):
     with open(project_file, 'r') as file:
