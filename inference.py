@@ -131,14 +131,14 @@ def display(preds, imgs, obj_list, compound_coef, image_path, imshow=False, imwr
     save_dir = 'test'
     image_name = os.path.basename(image_path)
     inferred_image_name = f"inferred_{image_name}"
-    save_path = os.path.join(save_dir, inferred_image_name)
+    save_path = os.path.join('/kaggle/working/EfficientDet',save_dir, inferred_image_name)
 
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
     for i, img in enumerate(imgs):
         if len(preds[i]['rois']) == 0:
-            continue  # Skip images without detections
+            continue 
 
         img_copy = img.copy()
 
@@ -146,7 +146,7 @@ def display(preds, imgs, obj_list, compound_coef, image_path, imshow=False, imwr
             x1, y1, x2, y2 = preds[i]['rois'][j].astype(int)
             obj = obj_list[preds[i]['class_ids'][j]]
             score = preds[i]['scores'][j] if preds[i]['scores'][j] is not None else 0.0
-            label = f"{obj} {score:.2f}"  # Display score with label
+            label = f"{obj} {score:.2f}"
             color = color_list[get_index_label(obj, obj_list)]
             plot_one_box(img_copy, [x1, y1, x2, y2], label=label, color=color)
 
